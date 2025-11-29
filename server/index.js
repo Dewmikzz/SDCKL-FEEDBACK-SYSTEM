@@ -20,37 +20,41 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize database and start server
+// Initialize database and setup routes
 const db = require('./config/database');
-db.init()
-  .then(() => {
-    // Routes
-    app.use('/api/feedback', feedbackRoutes);
-    app.use('/api/admin', adminRoutes);
-    app.use('/api/auth', authRoutes);
 
-    // Serve static files from React app in production
-    if (process.env.NODE_ENV === 'production') {
-      app.use(express.static(path.join(__dirname, '../client/dist')));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-      });
-    }
+// Initialize database (async, but don't block route setup)
+db.init().catch(err => {
+  console.error('Database initialization error:', err);
+});
 
-    // Only start server if not in Vercel (serverless)
-    if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+// Routes - setup immediately
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/auth', authRoutes);
+
+// Serve static files from React app in production
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
+
+// Only start server if not in Vercel (serverless)
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  db.init()
+    .then(() => {
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
         console.log(`API available at http://localhost:${PORT}/api`);
       });
-    }
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err);
-    if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database:', err);
       process.exit(1);
-    }
-  });
+    });
+}
 
 // Export for Vercel serverless
 module.exports = app;

@@ -26,10 +26,10 @@ const FeedbackForm = () => {
   ];
 
   useEffect(() => {
-    // Simulate loading with preloader
+    // Simulate loading with preloader - reduced time for better UX
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1500);
+    }, 800);
     return () => clearTimeout(timer);
   }, []);
 

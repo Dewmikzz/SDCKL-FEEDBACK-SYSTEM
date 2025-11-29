@@ -1,4 +1,5 @@
-// Vercel serverless function entry point
+// Vercel serverless function - main entry point
 const app = require('../server/index.js');
-module.exports = app;
 
+// Export as serverless function
+module.exports = app;
