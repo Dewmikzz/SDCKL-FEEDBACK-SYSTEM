@@ -6,12 +6,16 @@ A comprehensive, mobile-responsive feedback system with analytical admin dashboa
 
 ### Public Features
 - **Mobile-Responsive Feedback Form**: Submit feedback with name, email, phone, category, rating, and message
+- **3D UI Effects**: Modern, interactive interface with animations
+- **Preloader**: Logo animation with loading message
 - **Real-time Validation**: Form validation with error messages
 - **Success/Error Notifications**: User-friendly feedback on submission status
 - **QR Code Ready**: The hosted link can be converted to QR code for easy access
+- **Multi-Device Support**: Works on any device, any IP address, any location
 
 ### Admin Features
 - **Secure Authentication**: JWT-based admin login system
+- **Gmail-Style Dashboard**: Clean, modern interface with background patterns
 - **Analytical Dashboard**: 
   - Total feedback count
   - Average rating
@@ -19,13 +23,14 @@ A comprehensive, mobile-responsive feedback system with analytical admin dashboa
   - Category distribution (pie chart)
   - Rating distribution (bar chart)
   - Recent trends
+- **Real-time Updates**: Auto-refresh every 30 seconds
 - **Feedback Management**:
   - View all feedback with pagination
   - Search by name, email, or message
   - Filter by status and category
   - Edit feedback (status, category, rating, message)
   - Delete feedback
-- **Real-time Updates**: Dashboard refreshes automatically after changes
+- **Multi-Device Access**: Access from any device, any IP, anywhere
 
 ## Tech Stack
 
@@ -69,10 +74,32 @@ A comprehensive, mobile-responsive feedback system with analytical admin dashboa
 
 ## Default Admin Credentials
 
-- **Username**: `admin`
-- **Password**: `admin123`
+- **Username**: `admin@sdckl`
+- **Password**: `sdckladmin123@`
 
 **⚠️ Important**: Change the default admin password in production!
+
+## Deployment to Vercel
+
+See [DEPLOY.md](./DEPLOY.md) for detailed deployment instructions.
+
+### Quick Deploy
+
+1. Push code to GitHub
+2. Import project in Vercel dashboard
+3. Set environment variables:
+   - `NODE_ENV` = `production`
+   - `JWT_SECRET` = `your-secret-key`
+4. Deploy!
+
+### Multi-Device Access
+
+✅ **Fully Configured for Multi-Device Access:**
+- CORS enabled for all origins
+- Works on mobile, tablet, desktop
+- Works from any IP address
+- Works from any location
+- Multiple users can access simultaneously
 
 ## Project Structure
 
@@ -98,12 +125,15 @@ QR_Feed_SDCKL/
 │   │   │   ├── FeedbackForm.jsx
 │   │   │   ├── AdminLogin.jsx
 │   │   │   └── AdminDashboard.jsx
+│   │   ├── config/
+│   │   │   └── api.js        # API configuration
 │   │   ├── App.jsx
 │   │   ├── main.jsx
 │   │   └── index.css
 │   └── package.json
 ├── data/
 │   └── feedback.db           # SQLite database (created automatically)
+├── vercel.json               # Vercel configuration
 ├── package.json
 └── README.md
 ```
@@ -122,30 +152,6 @@ QR_Feed_SDCKL/
 - `PATCH /api/admin/feedback/:id` - Update feedback
 - `DELETE /api/admin/feedback/:id` - Delete feedback
 
-## Deployment
-
-### For Production:
-
-1. **Build the frontend**:
-   ```bash
-   npm run build
-   ```
-
-2. **Set environment variables**:
-   - `NODE_ENV=production`
-   - `JWT_SECRET=<strong-random-secret>`
-   - `PORT=<your-port>`
-
-3. **Start the server**:
-   ```bash
-   npm start
-   ```
-
-4. **Convert to QR Code**:
-   - Once deployed, get your hosting URL (e.g., `https://yourdomain.com`)
-   - Use any QR code generator to create a QR code from the URL
-   - The QR code can be printed or displayed for easy access
-
 ## Mobile Responsiveness
 
 The entire application is built with mobile-first design:
@@ -160,16 +166,7 @@ The entire application is built with mobile-first design:
 - JWT token-based authentication
 - Input validation and sanitization
 - SQL injection protection (parameterized queries)
-- CORS configuration
-
-## Future Enhancements
-
-- Email notifications for new feedback
-- Export feedback to CSV/Excel
-- Advanced filtering and sorting
-- Feedback response/reply system
-- User accounts for feedback tracking
-- Multi-language support
+- CORS configuration for secure multi-origin access
 
 ## License
 
@@ -179,3 +176,4 @@ This project is created for Sentral Digital College Kuala Lumpur.
 
 For issues or questions, please contact the development team.
 
+**Powered by [DewX](https://www.dewmika.rf.gd)**
