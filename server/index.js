@@ -23,15 +23,17 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize database and setup routes
 const db = require('./config/database');
 
-// Initialize database (async, but don't block route setup)
-db.init().catch(err => {
-  console.error('Database initialization error:', err);
-});
-
-// Routes - setup immediately
+// Routes - setup immediately (database will init on first request if needed)
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
+
+// Initialize database in background (non-blocking)
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  db.init().catch(err => {
+    console.error('Database initialization error:', err);
+  });
+}
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {

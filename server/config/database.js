@@ -22,12 +22,13 @@ let db = null;
 
 const init = () => {
   return new Promise((resolve, reject) => {
-    db = new sqlite3.Database(dbPath, (err) => {
+    // If database already exists, use it; otherwise create new
+    db = new sqlite3.Database(dbPath, sqlite3.OPEN_CREATE | sqlite3.OPEN_READWRITE, (err) => {
       if (err) {
         console.error('Error opening database:', err);
         reject(err);
       } else {
-        console.log('Connected to SQLite database');
+        console.log('Connected to SQLite database at:', dbPath);
         createTables().then(resolve).catch(reject);
       }
     });
