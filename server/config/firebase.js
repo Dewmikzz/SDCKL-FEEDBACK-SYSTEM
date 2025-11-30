@@ -12,10 +12,26 @@ const init = () => {
     try {
       // Initialize Firebase Admin if not already initialized
       if (!admin.apps.length) {
-        // Use service account from environment variable or JSON file
-        const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-          : require('../../firebase-service-account.json');
+        let serviceAccount;
+        
+        // Try environment variable first (for Vercel)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+          try {
+            serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+              ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+              : process.env.FIREBASE_SERVICE_ACCOUNT;
+          } catch (e) {
+            console.error('Error parsing FIREBASE_SERVICE_ACCOUNT:', e);
+            throw new Error('Invalid FIREBASE_SERVICE_ACCOUNT format');
+          }
+        } else {
+          // Try local file (for development)
+          try {
+            serviceAccount = require('../../firebase-service-account.json');
+          } catch (e) {
+            throw new Error('Firebase service account not found. Set FIREBASE_SERVICE_ACCOUNT environment variable or add firebase-service-account.json file.');
+          }
+        }
 
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount)
@@ -66,4 +82,3 @@ module.exports = {
   init,
   getDb
 };
-
