@@ -8,8 +8,8 @@ const router = express.Router();
 // Get all feedback (public - for display)
 router.get('/', async (req, res) => {
   try {
-    const db = getDb();
-    const { status, category, limit = 50, offset = 0 } = req.query;
+    const db = await getDb();
+    const { status, category, limit = 50 } = req.query;
     
     let query = db.collection('feedback').orderBy('created_at', 'desc');
     
@@ -20,7 +20,8 @@ router.get('/', async (req, res) => {
       query = query.where('category', '==', category);
     }
     
-    const snapshot = await query.limit(parseInt(limit)).offset(parseInt(offset)).get();
+    // Firestore doesn't support offset(), use limit() only
+    const snapshot = await query.limit(parseInt(limit)).get();
     const feedback = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
     res.json(feedback);
   } catch (error) {
     console.error('Error fetching feedback:', error);
-    res.status(500).json({ error: 'Database error' });
+    res.status(500).json({ error: 'Database error', details: error.message });
   }
 });
 
@@ -48,15 +49,15 @@ router.post('/', [
 
   try {
     const { name, email, phone, category, rating, message } = req.body;
-    const db = getDb();
+    const db = await getDb();
     
     const feedbackData = {
-      name,
-      email: email || null,
-      phone: phone || null,
-      category,
+      name: name.trim(),
+      email: email ? email.trim() : null,
+      phone: phone ? phone.trim() : null,
+      category: category.trim(),
       rating: parseInt(rating),
-      message,
+      message: message.trim(),
       status: 'pending',
       created_at: admin.firestore.FieldValue.serverTimestamp(),
       updated_at: admin.firestore.FieldValue.serverTimestamp()
@@ -70,14 +71,17 @@ router.post('/', [
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
-    res.status(500).json({ error: 'Failed to submit feedback' });
+    res.status(500).json({ 
+      error: 'Failed to submit feedback',
+      details: error.message 
+    });
   }
 });
 
 // Get single feedback by ID
 router.get('/:id', async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDb();
     const doc = await db.collection('feedback').doc(req.params.id).get();
     
     if (!doc.exists) {
@@ -90,7 +94,7 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching feedback:', error);
-    res.status(500).json({ error: 'Database error' });
+    res.status(500).json({ error: 'Database error', details: error.message });
   }
 });
 

@@ -71,9 +71,10 @@ const initializeDefaultAdmin = async () => {
   }
 };
 
-const getDb = () => {
-  if (!db) {
-    throw new Error('Firebase not initialized. Call init() first.');
+const getDb = async () => {
+  // Ensure Firebase is initialized (important for serverless)
+  if (!initialized || !db) {
+    await init();
   }
   return db;
 };

@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Username and password required' });
     }
 
-    const db = getDb();
+    const db = await getDb();
     const adminDoc = await db.collection('admins').doc(username).get();
 
     if (!adminDoc.exists) {

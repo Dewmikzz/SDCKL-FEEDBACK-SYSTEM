@@ -12,7 +12,7 @@ router.use(authenticateToken);
 // Get analytics dashboard data
 router.get('/analytics', async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDb();
     const feedbackRef = db.collection('feedback');
     
     // Get all feedback
@@ -99,7 +99,7 @@ router.get('/analytics', async (req, res) => {
 // Get all feedback with pagination
 router.get('/feedback', async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDb();
     const { page = 1, limit = 20, status, category, search } = req.query;
     const limitNum = parseInt(limit);
     const offset = (parseInt(page) - 1) * limitNum;
@@ -171,7 +171,7 @@ router.patch('/feedback/:id', [
   try {
     const { id } = req.params;
     const updates = req.body;
-    const db = getDb();
+    const db = await getDb();
     
     const feedbackRef = db.collection('feedback').doc(id);
     const doc = await feedbackRef.get();
@@ -213,7 +213,7 @@ router.patch('/feedback/:id', [
 // Delete feedback
 router.delete('/feedback/:id', async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDb();
     const feedbackRef = db.collection('feedback').doc(req.params.id);
     const doc = await feedbackRef.get();
     
@@ -232,7 +232,7 @@ router.delete('/feedback/:id', async (req, res) => {
 // Get single feedback
 router.get('/feedback/:id', async (req, res) => {
   try {
-    const db = getDb();
+    const db = await getDb();
     const doc = await db.collection('feedback').doc(req.params.id).get();
     
     if (!doc.exists) {

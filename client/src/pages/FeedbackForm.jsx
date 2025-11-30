@@ -117,6 +117,15 @@ const FeedbackForm = () => {
       setSubmittingLoader(false);
       setSubmitStatus('error');
       console.error('Error submitting feedback:', error);
+      
+      // Log detailed error for debugging
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+      } else if (error.request) {
+        console.error('Error request:', error.request);
+      } else {
+        console.error('Error message:', error.message);
+      }
     } finally {
       setSubmitting(false);
     }
