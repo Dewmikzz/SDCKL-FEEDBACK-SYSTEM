@@ -37,7 +37,17 @@ router.get('/', async (req, res) => {
 // Submit feedback
 router.post('/', [
   body('name').trim().notEmpty().withMessage('Name is required'),
-  body('email').optional().isEmail().withMessage('Invalid email'),
+  body('email')
+    .optional({ checkFalsy: true })
+    .trim()
+    .custom((value) => {
+      if (!value || value === '') return true; // Allow empty
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value); // Validate if provided
+    })
+    .withMessage('Invalid email format'),
+  body('phone')
+    .optional({ checkFalsy: true })
+    .trim(),
   body('category').notEmpty().withMessage('Category is required'),
   body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
   body('message').trim().notEmpty().withMessage('Message is required')
@@ -51,10 +61,14 @@ router.post('/', [
     const { name, email, phone, category, rating, message } = req.body;
     const db = await getDb();
     
+    // Clean up email and phone - convert empty strings to null
+    const cleanEmail = email && email.trim() ? email.trim() : null;
+    const cleanPhone = phone && phone.trim() ? phone.trim() : null;
+    
     const feedbackData = {
       name: name.trim(),
-      email: email ? email.trim() : null,
-      phone: phone ? phone.trim() : null,
+      email: cleanEmail,
+      phone: cleanPhone,
       category: category.trim(),
       rating: parseInt(rating),
       message: message.trim(),

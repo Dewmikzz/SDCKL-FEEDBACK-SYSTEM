@@ -95,7 +95,14 @@ const FeedbackForm = () => {
     setSubmitStatus(null);
 
     try {
-      await axios.post('/api/feedback', formData);
+      // Prepare data - convert empty email/phone to null
+      const submitData = {
+        ...formData,
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null
+      };
+      
+      await axios.post('/api/feedback', submitData);
       
       // Show preloader for 2 seconds
       await new Promise(resolve => setTimeout(resolve, 2000));
