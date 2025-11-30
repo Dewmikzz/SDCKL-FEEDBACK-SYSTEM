@@ -1,7 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth');
-const { getDb } = require('../config/database');
+const { getDb } = require('../config/firebase');
+const admin = require('firebase-admin');
 
 const router = express.Router();
 
@@ -9,119 +10,150 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // Get analytics dashboard data
-router.get('/analytics', (req, res) => {
-  const db = getDb();
-  
-  const analytics = {};
-  
-  // Total feedback count
-  db.get('SELECT COUNT(*) as total FROM feedback', (err, row) => {
-    if (err) return res.status(500).json({ error: 'Database error' });
-    analytics.total = row.total;
+router.get('/analytics', async (req, res) => {
+  try {
+    const db = getDb();
+    const feedbackRef = db.collection('feedback');
     
-    // Feedback by status
-    db.all('SELECT status, COUNT(*) as count FROM feedback GROUP BY status', (err, rows) => {
-      if (err) return res.status(500).json({ error: 'Database error' });
-      analytics.byStatus = rows;
+    // Get all feedback
+    const allFeedback = await feedbackRef.get();
+    const feedbackDocs = allFeedback.docs.map(doc => doc.data());
+    
+    const analytics = {
+      total: feedbackDocs.length,
+      byStatus: [],
+      byCategory: [],
+      avgRating: 0,
+      ratingDistribution: [],
+      recentTrends: []
+    };
+    
+    // Calculate by status
+    const statusCount = {};
+    const categoryCount = {};
+    const ratingCount = {};
+    let totalRating = 0;
+    const recentDates = {};
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    feedbackDocs.forEach(feedback => {
+      // Status count
+      statusCount[feedback.status] = (statusCount[feedback.status] || 0) + 1;
       
-      // Feedback by category
-      db.all('SELECT category, COUNT(*) as count FROM feedback GROUP BY category', (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        analytics.byCategory = rows;
-        
-        // Average rating
-        db.get('SELECT AVG(rating) as avgRating FROM feedback', (err, row) => {
-          if (err) return res.status(500).json({ error: 'Database error' });
-          analytics.avgRating = row.avgRating ? parseFloat(row.avgRating.toFixed(2)) : 0;
-          
-          // Rating distribution
-          db.all('SELECT rating, COUNT(*) as count FROM feedback GROUP BY rating ORDER BY rating', (err, rows) => {
-            if (err) return res.status(500).json({ error: 'Database error' });
-            analytics.ratingDistribution = rows;
-            
-            // Recent feedback (last 7 days)
-            db.all(`SELECT COUNT(*) as count, DATE(created_at) as date 
-                    FROM feedback 
-                    WHERE created_at >= datetime('now', '-7 days')
-                    GROUP BY DATE(created_at)
-                    ORDER BY date`, (err, rows) => {
-              if (err) return res.status(500).json({ error: 'Database error' });
-              analytics.recentTrends = rows;
-              
-              res.json(analytics);
-            });
-          });
-        });
-      });
+      // Category count
+      categoryCount[feedback.category] = (categoryCount[feedback.category] || 0) + 1;
+      
+      // Rating
+      if (feedback.rating) {
+        ratingCount[feedback.rating] = (ratingCount[feedback.rating] || 0) + 1;
+        totalRating += feedback.rating;
+      }
+      
+      // Recent trends
+      if (feedback.created_at) {
+        const createdDate = feedback.created_at.toDate ? feedback.created_at.toDate() : new Date(feedback.created_at);
+        if (createdDate >= sevenDaysAgo) {
+          const dateStr = createdDate.toISOString().split('T')[0];
+          recentDates[dateStr] = (recentDates[dateStr] || 0) + 1;
+        }
+      }
     });
-  });
+    
+    // Format by status
+    analytics.byStatus = Object.keys(statusCount).map(status => ({
+      status,
+      count: statusCount[status]
+    }));
+    
+    // Format by category
+    analytics.byCategory = Object.keys(categoryCount).map(category => ({
+      category,
+      count: categoryCount[category]
+    }));
+    
+    // Average rating
+    analytics.avgRating = feedbackDocs.length > 0 && totalRating > 0 
+      ? parseFloat((totalRating / feedbackDocs.length).toFixed(2))
+      : 0;
+    
+    // Rating distribution
+    analytics.ratingDistribution = [1, 2, 3, 4, 5].map(rating => ({
+      rating,
+      count: ratingCount[rating] || 0
+    }));
+    
+    // Recent trends
+    analytics.recentTrends = Object.keys(recentDates).map(date => ({
+      date,
+      count: recentDates[date]
+    })).sort((a, b) => a.date.localeCompare(b.date));
+    
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Get all feedback with pagination
-router.get('/feedback', (req, res) => {
-  const db = getDb();
-  const { page = 1, limit = 20, status, category, search } = req.query;
-  const offset = (parseInt(page) - 1) * parseInt(limit);
-  
-  let query = 'SELECT * FROM feedback WHERE 1=1';
-  const params = [];
-  
-  if (status) {
-    query += ' AND status = ?';
-    params.push(status);
-  }
-  if (category) {
-    query += ' AND category = ?';
-    params.push(category);
-  }
-  if (search) {
-    query += ' AND (name LIKE ? OR message LIKE ? OR email LIKE ?)';
-    const searchTerm = `%${search}%`;
-    params.push(searchTerm, searchTerm, searchTerm);
-  }
-  
-  query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-  params.push(parseInt(limit), offset);
-  
-  db.all(query, params, (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+router.get('/feedback', async (req, res) => {
+  try {
+    const db = getDb();
+    const { page = 1, limit = 20, status, category, search } = req.query;
+    const limitNum = parseInt(limit);
+    const offset = (parseInt(page) - 1) * limitNum;
     
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) as total FROM feedback WHERE 1=1';
-    const countParams = [];
+    let query = db.collection('feedback').orderBy('created_at', 'desc');
     
     if (status) {
-      countQuery += ' AND status = ?';
-      countParams.push(status);
+      query = query.where('status', '==', status);
     }
     if (category) {
-      countQuery += ' AND category = ?';
-      countParams.push(category);
-    }
-    if (search) {
-      countQuery += ' AND (name LIKE ? OR message LIKE ? OR email LIKE ?)';
-      const searchTerm = `%${search}%`;
-      countParams.push(searchTerm, searchTerm, searchTerm);
+      query = query.where('category', '==', category);
     }
     
-    db.get(countQuery, countParams, (err, countRow) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
+    // Get all for filtering/search
+    const snapshot = await query.get();
+    let feedback = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      feedback = feedback.filter(f => 
+        (f.name && f.name.toLowerCase().includes(searchLower)) ||
+        (f.message && f.message.toLowerCase().includes(searchLower)) ||
+        (f.email && f.email.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply pagination
+    const total = feedback.length;
+    const paginatedFeedback = feedback.slice(offset, offset + limitNum);
+    
+    // Convert Firestore timestamps to ISO strings
+    const formattedFeedback = paginatedFeedback.map(f => ({
+      ...f,
+      created_at: f.created_at?.toDate ? f.created_at.toDate().toISOString() : f.created_at,
+      updated_at: f.updated_at?.toDate ? f.updated_at.toDate().toISOString() : f.updated_at
+    }));
+    
+    res.json({
+      feedback: formattedFeedback,
+      pagination: {
+        page: parseInt(page),
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
       }
-      
-      res.json({
-        feedback: rows,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total: countRow.total,
-          pages: Math.ceil(countRow.total / parseInt(limit))
-        }
-      });
     });
-  });
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Update feedback status
@@ -130,81 +162,94 @@ router.patch('/feedback/:id', [
   body('category').optional().notEmpty(),
   body('rating').optional().isInt({ min: 1, max: 5 }),
   body('message').optional().notEmpty()
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { id } = req.params;
-  const updates = req.body;
-  const db = getDb();
-
-  // Build update query dynamically
-  const fields = [];
-  const values = [];
-  
-  Object.keys(updates).forEach(key => {
-    if (['status', 'category', 'rating', 'message', 'name', 'email', 'phone'].includes(key)) {
-      fields.push(`${key} = ?`);
-      values.push(updates[key]);
-    }
-  });
-
-  if (fields.length === 0) {
-    return res.status(400).json({ error: 'No valid fields to update' });
-  }
-
-  fields.push('updated_at = CURRENT_TIMESTAMP');
-  values.push(id);
-
-  const query = `UPDATE feedback SET ${fields.join(', ')} WHERE id = ?`;
-
-  db.run(query, values, function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to update feedback' });
-    }
-    if (this.changes === 0) {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const db = getDb();
+    
+    const feedbackRef = db.collection('feedback').doc(id);
+    const doc = await feedbackRef.get();
+    
+    if (!doc.exists) {
       return res.status(404).json({ error: 'Feedback not found' });
     }
     
-    // Return updated feedback
-    db.get('SELECT * FROM feedback WHERE id = ?', [id], (err, row) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
+    // Prepare update data
+    const updateData = {};
+    const allowedFields = ['status', 'category', 'rating', 'message', 'name', 'email', 'phone'];
+    
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key)) {
+        updateData[key] = updates[key];
       }
-      res.json(row);
     });
-  });
+    
+    updateData.updated_at = admin.firestore.FieldValue.serverTimestamp();
+    
+    await feedbackRef.update(updateData);
+    
+    // Return updated feedback
+    const updatedDoc = await feedbackRef.get();
+    const data = updatedDoc.data();
+    
+    res.json({
+      id: updatedDoc.id,
+      ...data,
+      created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at,
+      updated_at: data.updated_at?.toDate ? data.updated_at.toDate().toISOString() : data.updated_at
+    });
+  } catch (error) {
+    console.error('Error updating feedback:', error);
+    res.status(500).json({ error: 'Failed to update feedback' });
+  }
 });
 
 // Delete feedback
-router.delete('/feedback/:id', (req, res) => {
-  const db = getDb();
-  db.run('DELETE FROM feedback WHERE id = ?', [req.params.id], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to delete feedback' });
-    }
-    if (this.changes === 0) {
+router.delete('/feedback/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const feedbackRef = db.collection('feedback').doc(req.params.id);
+    const doc = await feedbackRef.get();
+    
+    if (!doc.exists) {
       return res.status(404).json({ error: 'Feedback not found' });
     }
+    
+    await feedbackRef.delete();
     res.json({ message: 'Feedback deleted successfully' });
-  });
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    res.status(500).json({ error: 'Failed to delete feedback' });
+  }
 });
 
 // Get single feedback
-router.get('/feedback/:id', (req, res) => {
-  const db = getDb();
-  db.get('SELECT * FROM feedback WHERE id = ?', [req.params.id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    if (!row) {
+router.get('/feedback/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const doc = await db.collection('feedback').doc(req.params.id).get();
+    
+    if (!doc.exists) {
       return res.status(404).json({ error: 'Feedback not found' });
     }
-    res.json(row);
-  });
+    
+    const data = doc.data();
+    res.json({
+      id: doc.id,
+      ...data,
+      created_at: data.created_at?.toDate ? data.created_at.toDate().toISOString() : data.created_at,
+      updated_at: data.updated_at?.toDate ? data.updated_at.toDate().toISOString() : data.updated_at
+    });
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 module.exports = router;
-

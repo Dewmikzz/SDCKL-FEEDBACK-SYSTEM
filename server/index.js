@@ -20,20 +20,18 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Initialize database and setup routes
-const db = require('./config/database');
+// Initialize Firebase and setup routes
+const db = require('./config/firebase');
 
-// Routes - setup immediately (database will init on first request if needed)
+// Initialize Firebase (async, but don't block route setup)
+db.init().catch(err => {
+  console.error('Firebase initialization error:', err);
+});
+
+// Routes - setup immediately
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
-
-// Initialize database in background (non-blocking)
-if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
-  db.init().catch(err => {
-    console.error('Database initialization error:', err);
-  });
-}
 
 // Serve static files from React app in production
 if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
@@ -53,7 +51,7 @@ if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
       });
     })
     .catch((err) => {
-      console.error('Failed to initialize database:', err);
+      console.error('Failed to initialize Firebase:', err);
       process.exit(1);
     });
 }
