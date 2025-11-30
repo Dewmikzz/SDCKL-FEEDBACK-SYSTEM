@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FiSend, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiSend, FiCheckCircle, FiAlertCircle, FiPlus } from 'react-icons/fi';
 
 const FeedbackForm = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +15,8 @@ const FeedbackForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [submittingLoader, setSubmittingLoader] = useState(false);
 
   const categories = [
     'Academic',
@@ -89,11 +91,20 @@ const FeedbackForm = () => {
     }
 
     setSubmitting(true);
+    setSubmittingLoader(true);
     setSubmitStatus(null);
 
     try {
       await axios.post('/api/feedback', formData);
+      
+      // Show preloader for 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setSubmittingLoader(false);
       setSubmitStatus('success');
+      setShowSuccess(true);
+      
+      // Reset form data
       setFormData({
         name: '',
         email: '',
@@ -102,9 +113,8 @@ const FeedbackForm = () => {
         rating: 0,
         message: ''
       });
-      
-      setTimeout(() => setSubmitStatus(null), 5000);
     } catch (error) {
+      setSubmittingLoader(false);
       setSubmitStatus('error');
       console.error('Error submitting feedback:', error);
     } finally {
@@ -112,7 +122,21 @@ const FeedbackForm = () => {
     }
   };
 
-  // Preloader Component
+  const handleAddAnother = () => {
+    setShowSuccess(false);
+    setSubmitStatus(null);
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      category: '',
+      rating: 0,
+      message: ''
+    });
+    setErrors({});
+  };
+
+  // Initial Preloader Component
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -126,6 +150,90 @@ const FeedbackForm = () => {
           </div>
           <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
           <p className="text-xl font-semibold text-gray-700 animate-pulse">Loading Feedback System...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Submitting Preloader
+  if (submittingLoader) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/college_logo.png" 
+              alt="SDCKL Logo" 
+              className="h-32 w-auto animate-pulse"
+            />
+          </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-xl font-semibold text-gray-700 animate-pulse">Submitting your feedback...</p>
+          <p className="text-gray-600 mt-2">Please wait a moment</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Success Screen
+  if (showSuccess && submitStatus === 'success') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-8 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 border border-gray-100">
+            {/* Success Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+                <FiCheckCircle className="text-green-600 text-6xl" />
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+              Thank You for Your Feedback!
+            </h2>
+            
+            <p className="text-lg text-gray-600 mb-2">
+              Your feedback has been successfully submitted.
+            </p>
+            
+            <p className="text-base text-gray-500 mb-8">
+              We truly appreciate you taking the time to share your thoughts with us. 
+              Your input helps us improve and provide better services at Sentral Digital College Kuala Lumpur.
+            </p>
+
+            <p className="text-sm text-gray-500 mb-8">
+              Our team will review your feedback and take appropriate action. 
+              Thank you for helping us serve you better!
+            </p>
+
+            {/* Add Another Button */}
+            <button
+              onClick={handleAddAnother}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center gap-3 transform hover:scale-105 hover:shadow-xl active:scale-95"
+            >
+              <FiPlus className="text-xl" />
+              Add Another Feedback
+            </button>
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-8 space-y-2">
+            <p className="text-gray-600 text-sm">
+              © 2025 Sentral Digital College Kuala Lumpur. All rights reserved.
+            </p>
+            <p className="text-gray-500 text-xs">
+              Powered by{' '}
+              <a 
+                href="https://www.dewmika.rf.gd" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 font-semibold underline"
+              >
+                DewX
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -157,15 +265,6 @@ const FeedbackForm = () => {
 
         {/* Form Card */}
         <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
-          {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border-2 border-green-300 rounded-xl flex items-center gap-3 transform hover:scale-105 transition-transform shadow-lg">
-              <FiCheckCircle className="text-green-600 text-2xl" />
-              <p className="text-green-800 font-medium">
-                Thank you! Your feedback has been submitted successfully.
-              </p>
-            </div>
-          )}
-
           {submitStatus === 'error' && (
             <div className="mb-6 p-4 bg-red-50 border-2 border-red-300 rounded-xl flex items-center gap-3 transform hover:scale-105 transition-transform shadow-lg">
               <FiAlertCircle className="text-red-600 text-2xl" />
