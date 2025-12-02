@@ -7,6 +7,7 @@ import { getAnalytics } from "firebase/analytics";
 const firebaseConfig = {
   apiKey: "AIzaSyCA7s-2T8bu3SqKGBE4ve_4C7qJkPUGAdU",
   authDomain: "sdckl-feeds-ef6f0.firebaseapp.com",
+  databaseURL: "https://sdckl-feeds-ef6f0-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "sdckl-feeds-ef6f0",
   storageBucket: "sdckl-feeds-ef6f0.firebasestorage.app",
   messagingSenderId: "100888074826",
