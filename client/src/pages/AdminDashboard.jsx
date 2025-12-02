@@ -559,17 +559,6 @@ const AdminDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-600">
             <p>© 2025 Sentral Digital College Kuala Lumpur. All rights reserved.</p>
-            <p>
-              Powered by{' '}
-              <a 
-                href="https://www.dewmika.rf.gd" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-semibold underline"
-              >
-                DewX
-              </a>
-            </p>
           </div>
         </div>
       </footer>

@@ -5,14 +5,13 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBfDMwH3JX7YWWgjEZF5fQk-WOHQTBdydI",
-  authDomain: "sdckl-feeds.firebaseapp.com",
-  databaseURL: "https://sdckl-feeds-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "sdckl-feeds",
-  storageBucket: "sdckl-feeds.firebasestorage.app",
-  messagingSenderId: "247239966416",
-  appId: "1:247239966416:web:e7fed4bf69954c3c2c68d5",
-  measurementId: "G-K0LG484JMN"
+  apiKey: "AIzaSyCA7s-2T8bu3SqKGBE4ve_4C7qJkPUGAdU",
+  authDomain: "sdckl-feeds-ef6f0.firebaseapp.com",
+  projectId: "sdckl-feeds-ef6f0",
+  storageBucket: "sdckl-feeds-ef6f0.firebasestorage.app",
+  messagingSenderId: "100888074826",
+  appId: "1:100888074826:web:0a54e52b9b9552ab5fa4b3",
+  measurementId: "G-MYQ1B5JXQZ"
 };
 
 // Initialize Firebase (for future client-side features)

@@ -238,17 +238,6 @@ const FeedbackForm = () => {
             <p className="text-gray-600 text-sm">
               © 2025 Sentral Digital College Kuala Lumpur. All rights reserved.
             </p>
-            <p className="text-gray-500 text-xs">
-              Powered by{' '}
-              <a 
-                href="https://www.dewmika.rf.gd" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-800 font-semibold underline"
-              >
-                DewX
-              </a>
-            </p>
           </div>
         </div>
       </div>
@@ -440,17 +429,6 @@ const FeedbackForm = () => {
         <div className="text-center mt-8 space-y-2">
           <p className="text-gray-600 text-sm">
             © 2025 Sentral Digital College Kuala Lumpur. All rights reserved.
-          </p>
-          <p className="text-gray-500 text-xs">
-            Powered by{' '}
-            <a 
-              href="https://www.dewmika.rf.gd" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 font-semibold underline"
-            >
-              DewX
-            </a>
           </p>
         </div>
       </div>
