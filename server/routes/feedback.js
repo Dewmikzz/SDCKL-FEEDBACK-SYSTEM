@@ -85,9 +85,18 @@ router.post('/', [
     });
   } catch (error) {
     console.error('Error submitting feedback:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to submit feedback';
+    if (error.message && error.message.includes('Firebase')) {
+      errorMessage = 'Database connection error. Please check Firebase configuration.';
+    } else if (error.message && error.message.includes('permission')) {
+      errorMessage = 'Database permission error. Please check Firestore security rules.';
+    }
+    
     res.status(500).json({ 
-      error: 'Failed to submit feedback',
-      details: error.message 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

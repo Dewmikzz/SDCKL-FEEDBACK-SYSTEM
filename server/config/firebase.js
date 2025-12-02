@@ -48,6 +48,11 @@ const init = () => {
       }).catch(reject);
     } catch (error) {
       console.error('Firebase initialization error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        hasServiceAccount: !!process.env.FIREBASE_SERVICE_ACCOUNT,
+        hasLocalFile: false // Will be checked in try block
+      });
       reject(error);
     }
   });
